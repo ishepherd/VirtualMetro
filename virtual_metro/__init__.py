@@ -39,6 +39,7 @@ ROUTE_TYPE = 0
 timezone = pytz.timezone('Australia/Melbourne')
 
 @app.route('/')
+@app.route('/index')
 def index():
 	return flask.render_template('index.html')
 
