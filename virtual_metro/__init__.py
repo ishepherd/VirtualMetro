@@ -108,7 +108,7 @@ def latest():
 		result['next'][-1]['dest'] = dest_to_service_name(departures['runs'][str(departure['run_id'])]['destination_name'])
 		result['next'][-1]['desc'] = 'Express' if departures['runs'][str(departure['run_id'])]['express_stop_count'] > 4 else 'Limited Express'
 		result['next'][-1]['sch'] = parse_date(departure['scheduled_departure_utc']).strftime('%I:%M').lstrip('0')
-		result['next'][-1]['min'] = '{} mins'.format(round((parse_date(departure['estimated_departure_utc'] or departure['scheduled_departure_utc']) - timenow).total_seconds() / 60))
+		result['next'][-1]['min'] = '{} min'.format(round((parse_date(departure['estimated_departure_utc'] or departure['scheduled_departure_utc']) - timenow).total_seconds() / 60))
 	
 	return flask.jsonify(result)
 
