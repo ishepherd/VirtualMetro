@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Virtual Metro</title>
+		<style type="text/css">
+			body, html {
+				color: #eee;
+				background-color: black;
+			}
+			a, a:active, a:visited {
+				color: #eee;
+			}
+		</style>
+	</head>
+	<body>
+		<ul>
+			{% for stop_id, stop_name in stations %}
+				<li><a href="/?stop_id={{stop_id}}">{{stop_name}}</a></li>
+			{% endfor %}
+		</ul>
+	</body>
+</html>

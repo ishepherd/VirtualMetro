@@ -40,7 +40,7 @@ timezone = pytz.timezone('Australia/Melbourne')
 
 @app.route('/')
 def index():
-	return app.send_static_file('index.html')
+	return flask.render_template('index.html')
 
 @app.route('/latest')
 def latest():
@@ -107,10 +107,28 @@ def latest():
 	for departure in departures['departures'][i+1:i+3]:
 		result['next'].append({})
 		result['next'][-1]['dest'] = dest_to_service_name(departures['runs'][str(departure['run_id'])]['destination_name'])
-		result['next'][-1]['desc'] = 'Express' if num_express > 4 else 'Stops All Stations' if num_express == 0 else 'Limited Express'
+		result['next'][-1]['desc'] = 'Stops All Stations' if num_express == 0 else 'Limited Express'
 		result['next'][-1]['sch'] = parse_date(departure['scheduled_departure_utc']).strftime('%I:%M').lstrip('0')
 		result['next'][-1]['min'] = '{} min'.format(round((parse_date(departure['estimated_departure_utc'] or departure['scheduled_departure_utc']) - timenow).total_seconds() / 60))
 	
 	return flask.jsonify(result)
 
-...
+# Cache list of stations
+stns = None
+
+@app.route('/stations')
+def stations():
+	global stns
+	if not stns:
+		stn_list = {}
+		
+		routes = do_request('/v3/routes', {'route_types': ROUTE_TYPE})
+		for route in routes['routes']:
+			stops = do_request('/v3/stops/route/{}/route_type/{}'.format(route['route_id'], ROUTE_TYPE), {})
+			for stop in stops['stops']:
+				stn_list[stop['stop_id']] = stop['stop_name'].replace(' Station', '')
+		
+		stns = [(k, v) for k, v in stn_list.items()]
+		stns.sort(key=lambda x: x[1])
+	
+	return flask.render_template('stations.html', stations=stns)
