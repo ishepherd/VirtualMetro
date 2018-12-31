@@ -10,17 +10,42 @@
 				max-width: 100vw;
 				max-height: 100vh;
 			}
+			#topbar {
+				position: absolute;
+				left: 0;
+				top: 0;
+				z-index: 999;
+				font-size: small;
+			}
 			body, html {
+				color: #ccc;
 				background-color: black;
 				margin: 0;
 				padding: 0;
 				overflow: hidden;
+			}
+			a, a:active, a:visited {
+				color: #99f;
 			}
 		</style>
 	</head>
 	<body>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/nunjucks/3.0.1/nunjucks.min.js"></script>
 		<script>
+			function getQueryVariable(variable, def) {
+				var vars = window.location.search.substring(1).split("&");
+				for (var i = 0; i < vars.length; i++) {
+					var bits = vars[i].split("=");
+					if (decodeURIComponent(bits[0]) == variable) {
+						return decodeURIComponent(bits[1]);
+					}
+				}
+				return def;
+			}
+			
+			var stop_id = parseInt(getQueryVariable("stop_id", 1099));
+			var plat_id = parseInt(getQueryVariable("plat_id", 1));
+			
 			function start() {
 				var svg = document.getElementById("mainsvg").getSVGDocument().querySelector("svg");
 				var template = svg.innerHTML;
@@ -30,16 +55,29 @@
 				function tick() {
 					var xhr = new XMLHttpRequest();
 					xhr.addEventListener("load", function() {
-						svg.innerHTML = nunjucks.renderString(template, JSON.parse(xhr.responseText));
+						var result = JSON.parse(xhr.responseText);
+						svg.innerHTML = nunjucks.renderString(template, result);
+						document.getElementById("stopinfo").innerText = stop_id + " (" + result.stop_name + ")";
 					});
-					xhr.open("GET", "latest");
+					xhr.open("GET", "latest?stop_id=" + stop_id + "&plat_id=" + plat_id);
 					xhr.send();
 				}
 				
 				tick();
 				window.setInterval(tick, 30000);
 			}
+			
+			function changePlatform() {
+				var new_plat = parseInt(window.prompt("Enter new platform number:", plat_id));
+				window.location = "?stop_id=" + stop_id + "&plat_id=" + new_plat;
+				return false;
+			}
 		</script>
+		<div id="topbar">Stop <span id="stopinfo">?</span> [change] Platform <span id="platinfo">?</span> [<a href="#" onclick="return changePlatform();">change</a>]</div>
 		<object id="mainsvg" data="static/template.svg" type="image/svg+xml" onload="start();"></object>
+		<script>
+			document.getElementById("stopinfo").innerText = stop_id;
+			document.getElementById("platinfo").innerText = plat_id;
+		</script>
 	</body>
 </html>

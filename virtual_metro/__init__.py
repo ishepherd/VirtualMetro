@@ -34,8 +34,6 @@ def dest_to_service_name(dest):
 def parse_date(dtstring):
 	return pytz.utc.localize(datetime.strptime(dtstring, '%Y-%m-%dT%H:%M:%SZ')).astimezone(timezone)
 
-STOP_ID = 1099 # Huntingdale Station
-PLAT_ID = 1
 ROUTE_TYPE = 0
 
 timezone = pytz.timezone('Australia/Melbourne')
@@ -49,8 +47,10 @@ def latest():
 	timenow = pytz.utc.localize(datetime.utcnow()).astimezone(timezone)
 	result = {}
 	
-	departures = do_request('/v3/departures/route_type/{}/stop/{}'.format(ROUTE_TYPE, STOP_ID), {'platform_numbers': str(PLAT_ID), 'max_results': '5', 'expand': 'all'})
+	departures = do_request('/v3/departures/route_type/{}/stop/{}'.format(ROUTE_TYPE, flask.request.args['stop_id']), {'platform_numbers': flask.request.args['plat_id'], 'max_results': '5', 'expand': 'all'})
 	departures['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
+	
+	result['stop_name'] = departures['stops'][flask.request.args['stop_id']]['stop_name'].replace(' Station', '')
 	
 	# Next train
 	
@@ -79,26 +79,25 @@ def latest():
 		# Calculate stopping pattern until city loop
 		num_express = 0 # express_stop_count is unreliable for the city loop
 		for j, stop in enumerate(stops['stops']):
-			if stop['stop_id'] == STOP_ID:
+			if stop['stop_id'] == int(flask.request.args['stop_id']):
 				break
 		for stop in stops['stops'][j+1:]:
 			if stop['stop_id'] == 1155 or stop['stop_id'] == 1120 or stop['stop_id'] == 1068 or stop['stop_id'] == 1181 or stop['stop_id'] == 1071: # Parliament, MCS, Flagstaff, SXS, Flinders St
+				# Calculate stopping pattern in city loop
+				pattern['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
+				for k, stop2 in enumerate(pattern['departures']):
+					if stop2['stop_id'] == stop['stop_id']:
+						break
+				for stop in pattern['departures'][k:]:
+					result['stops'].append(pattern['stops'][str(stop['stop_id'])]['stop_name'].replace(' Station', ''))
 				break
 			if stop['stop_id'] in pattern_stops:
-				result['stops'].append(stop['stop_name'].replace('Station', '').strip())
+				result['stops'].append(stop['stop_name'].replace(' Station', ''))
 			else:
 				result['stops'].append('---')
 				num_express += 1
 			if stop['stop_id'] == departures['runs'][str(departure['run_id'])]['final_stop_id']:
 				break
-		
-		# Calculate stopping pattern in city loop
-		pattern['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
-		for k, stop2 in enumerate(pattern['departures']):
-			if stop2['stop_id'] == stop['stop_id']:
-				break
-		for stop in pattern['departures'][k:]:
-			result['stops'].append(pattern['stops'][str(stop['stop_id'])]['stop_name'].replace('Station', '').strip())
 		
 		break
 	
