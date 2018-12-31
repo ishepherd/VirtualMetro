@@ -77,17 +77,19 @@ def latest():
 		stops['stops'].sort(key=lambda x: x['stop_sequence'])
 		
 		# Calculate stopping pattern until city loop
+		num_express = 0 # express_stop_count is unreliable for the city loop
 		for j, stop in enumerate(stops['stops']):
 			if stop['stop_id'] == STOP_ID:
 				break
 		for stop in stops['stops'][j+1:]:
+			if stop['stop_id'] == 1155 or stop['stop_id'] == 1120 or stop['stop_id'] == 1068 or stop['stop_id'] == 1181 or stop['stop_id'] == 1071: # Parliament, MCS, Flagstaff, SXS, Flinders St
+				break
 			if stop['stop_id'] in pattern_stops:
 				result['stops'].append(stop['stop_name'].replace('Station', '').strip())
 			else:
 				result['stops'].append('---')
+				num_express += 1
 			if stop['stop_id'] == departures['runs'][str(departure['run_id'])]['final_stop_id']:
-				break
-			if stop['stop_id'] == 1155 or stop['stop_id'] == 1120 or stop['stop_id'] == 1068 or stop['stop_id'] == 1181 or stop['stop_id'] == 1071: # Parliament, MCS, Flagstaff, SXS, Flinders St
 				break
 		
 		# Calculate stopping pattern in city loop
@@ -95,7 +97,7 @@ def latest():
 		for k, stop2 in enumerate(pattern['departures']):
 			if stop2['stop_id'] == stop['stop_id']:
 				break
-		for stop in pattern['departures'][k+1:]:
+		for stop in pattern['departures'][k:]:
 			result['stops'].append(pattern['stops'][str(stop['stop_id'])]['stop_name'].replace('Station', '').strip())
 		
 		break
@@ -106,7 +108,7 @@ def latest():
 	for departure in departures['departures'][i+1:i+3]:
 		result['next'].append({})
 		result['next'][-1]['dest'] = dest_to_service_name(departures['runs'][str(departure['run_id'])]['destination_name'])
-		result['next'][-1]['desc'] = 'Express' if departures['runs'][str(departure['run_id'])]['express_stop_count'] > 4 else 'Limited Express'
+		result['next'][-1]['desc'] = 'Express' if num_express > 4 else 'Stops All Stations' if num_express == 0 else 'Limited Express'
 		result['next'][-1]['sch'] = parse_date(departure['scheduled_departure_utc']).strftime('%I:%M').lstrip('0')
 		result['next'][-1]['min'] = '{} min'.format(round((parse_date(departure['estimated_departure_utc'] or departure['scheduled_departure_utc']) - timenow).total_seconds() / 60))
 	
