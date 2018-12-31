@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<style type="text/css">
+			#mainsvg {
+				width: 100vw;
+				height: 100vh;
+				max-width: 100vw;
+				max-height: 100vh;
+			}
+			body, html {
+				background-color: black;
+				margin: 0;
+				padding: 0;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/nunjucks/3.0.1/nunjucks.min.js"></script>
+		<script>
+			function start() {
+				var svg = document.getElementById("mainsvg").getSVGDocument().querySelector("svg");
+				var template = svg.innerHTML;
+				
+				svg.innerHTML = nunjucks.renderString(template, {});
+				
+				function tick() {
+					var xhr = new XMLHttpRequest();
+					xhr.addEventListener("load", function() {
+						svg.innerHTML = nunjucks.renderString(template, JSON.parse(xhr.responseText));
+					});
+					xhr.open("GET", "latest");
+					xhr.send();
+				}
+				
+				tick();
+				window.setInterval(tick, 30000);
+			}
+		</script>
+		<object id="mainsvg" data="static/template.svg" type="image/svg+xml" onload="start();"></object>
+	</body>
+</html>
