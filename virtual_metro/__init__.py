@@ -55,18 +55,20 @@ def parse_departure(departure, departures, timenow):
 	pattern_stops = set(x['stop_id'] for x in pattern['departures'])
 	
 	# Get all stops on route
-	if departure['route_id'] not in route_stops:
+	if (departure['route_id'], departure['direction_id']) not in route_stops:
 		stops = do_request('/v3/stops/route/{}/route_type/{}'.format(departure['route_id'], ROUTE_TYPE), {'direction_id': departure['direction_id']})
 		stops['stops'].sort(key=lambda x: x['stop_sequence'])
-		route_stops[departure['route_id']] = stops['stops']
+		route_stops[(departure['route_id'], departure['direction_id'])] = stops['stops']
+	
+	route_stops_dir = route_stops[(departure['route_id'], departure['direction_id'])]
 	
 	# Calculate stopping pattern until city loop
 	express_stops = [] # express_stop_count is unreliable for the city loop
 	num_city_loop = 0
-	for j, stop in enumerate(route_stops[departure['route_id']]):
+	for j, stop in enumerate(route_stops_dir):
 		if stop['stop_id'] == int(flask.request.args['stop_id']):
 			break
-	for stop in route_stops[departure['route_id']][j+1:]:
+	for stop in route_stops_dir[j+1:]:
 		if stop['stop_id'] == 1155 or stop['stop_id'] == 1120 or stop['stop_id'] == 1068 or stop['stop_id'] == 1181 or stop['stop_id'] == 1071: # Parliament, MCS, Flagstaff, SXS, Flinders St
 			# Calculate stopping pattern in city loop
 			pattern['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
