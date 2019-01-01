@@ -61,7 +61,7 @@ def parse_departure(departure, departures, timenow):
 		route_stops[departure['route_id']] = stops['stops']
 	
 	# Calculate stopping pattern until city loop
-	num_express = 0 # express_stop_count is unreliable for the city loop
+	express_stops = [] # express_stop_count is unreliable for the city loop
 	num_city_loop = 0
 	for j, stop in enumerate(route_stops[departure['route_id']]):
 		if stop['stop_id'] == int(flask.request.args['stop_id']):
@@ -81,16 +81,25 @@ def parse_departure(departure, departures, timenow):
 			result['stops'].append(stop['stop_name'].replace(' Station', ''))
 		else:
 			result['stops'].append('---')
-			num_express += 1
+			express_stops.append(stop['stop_name'].replace(' Station', ''))
 		if stop['stop_id'] == departures['runs'][str(departure['run_id'])]['final_stop_id']:
 			break
 	
-	result['dest'] = departures['runs'][str(departure['run_id'])]['destination_name']
+	# Impute remainder of journey
+	if result['stops'][-1] == 'Parliament':
+		result['stops'].append('Melbourne Central')
+		result['stops'].append('Flagstaff')
+		result['stops'].append('Southern Cross')
+		result['stops'].append('Flinders Street')
+		num_city_loop += 4
+	
+	#result['dest'] = departures['runs'][str(departure['run_id'])]['destination_name']
+	result['dest'] = result['stops'][-1]
 	if result['dest'] == 'Parliament' or result['dest'] == 'Melbourne Central' or result['dest'] == 'Flagstaff' or result['dest'] == 'Southern Cross' or result['dest'] == 'Flinders Street':
 		# Is this a City Loop train?
 		if num_city_loop >= 3:
 			result['dest'] = 'City Loop'
-	result['desc'] = 'Limited Express' if num_express > 0 else 'Stops All Stations'
+	result['desc'] = 'All Except {}'.format(express_stops[0]) if len(express_stops) == 1 else 'Limited Express' if len(express_stops) > 1 else 'Stops All Stations'
 	
 	return result
 
