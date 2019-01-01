@@ -29,7 +29,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.7"
-     inkscape:cx="1809.3071"
+     inkscape:cx="1923.5929"
      inkscape:cy="258.31501"
      inkscape:document-units="mm"
      inkscape:current-layer="layer2"
@@ -322,17 +322,15 @@
        y="114.90017"
        id="text1041"><tspan
          sodipodi:role="line"
-         id="tspan905">{{next[0].min}}</tspan></text>
+         id="tspan2228">{{next[0].min}} min</tspan></text>
     <text
        id="text1045"
        y="153.88506"
        x="594.75537"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.66260624px;line-height:1.25;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.52761269"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.66260591px;line-height:1.25;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr;text-anchor:start;display:inline;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.52761269;"
        xml:space="preserve"><tspan
          sodipodi:role="line"
-         id="tspan908"
-         x="594.75537"
-         y="153.88506">{{next[1].min}}</tspan></text>
+         id="tspan2230">{{next[1].min}} min</tspan></text>
     <path
        inkscape:connector-curvature="0"
        id="path1047"
@@ -498,13 +496,12 @@
        id="text949"
        y="260.45605"
        x="273.37332"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.72009468px;line-height:1.25;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.69666886"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.7202549px;line-height:1.25;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.69666886"
        xml:space="preserve"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.72009468px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;stroke-width:0.69666886"
-         y="260.45605"
+         sodipodi:role="line"
+         id="tspan2236"
          x="273.37332"
-         id="tspan947"
-         sodipodi:role="line">{{stops[20]}}</tspan></text>
+         y="260.45605">{% if stops[21] %}({{stops.length-20}} more){% else %}{{stops[20]}}{% endif %}</tspan></text>
     <text
        id="text972"
        y="118.9901"

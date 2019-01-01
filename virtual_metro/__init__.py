@@ -129,9 +129,7 @@ def latest():
 	
 	result['next'] = []
 	for departure in departures['departures'][i+1:i+3]:
-		dep_result = parse_departure(departure, departures, timenow)
-		dep_result['min'] = '{} min'.format(dep_result['min'])
-		result['next'].append(dep_result)
+		result['next'].append(parse_departure(departure, departures, timenow))
 	
 	return flask.jsonify(result)
 
