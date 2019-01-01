@@ -71,7 +71,7 @@ def parse_departure(departure, departures, timenow):
 		if stop['stop_id'] == int(flask.request.args['stop_id']):
 			break
 	for stop in route_stops_dir[j+1:]:
-		if stop['stop_name'] in LOOP_STATIONS:
+		if stop['stop_name'].replace(' Station', '') in LOOP_STATIONS:
 			# Calculate stopping pattern in city loop
 			if done_city_loop:
 				continue
@@ -85,7 +85,7 @@ def parse_departure(departure, departures, timenow):
 				num_city_loop += 1
 			
 			done_city_loop = True
-		if stop['stop_id'] in pattern_stops:
+		elif stop['stop_id'] in pattern_stops:
 			result['stops'].append(stop['stop_name'].replace(' Station', ''))
 		else:
 			result['stops'].append('   ---')
@@ -101,13 +101,20 @@ def parse_departure(departure, departures, timenow):
 		result['stops'].append('Flinders Street')
 		num_city_loop += 4
 	
-	#result['dest'] = departures['runs'][str(departure['run_id'])]['destination_name']
 	result['dest'] = result['stops'][-1]
 	if result['dest'] in LOOP_STATIONS:
+		# Up train
 		# Is this a City Loop train?
 		if num_city_loop >= 3:
 			result['dest'] = 'City Loop'
-	result['desc'] = 'All Except {}'.format(express_stops[0]) if len(express_stops) == 1 else 'Limited Express' if len(express_stops) > 1 else 'Stops All Stations'
+		result['desc'] = 'All Except {}'.format(express_stops[0]) if len(express_stops) == 1 else 'Limited Express' if len(express_stops) > 1 else 'Stops All Stations'
+	else:
+		# Down train
+		# Is this a via City Loop train?
+		if num_city_loop >= 3:
+			result['desc'] = 'Ltd Express via City Loop' if len(express_stops) > 1 else 'Stops All via City Loop'
+		else:
+			result['desc'] = 'All Except {}'.format(express_stops[0]) if len(express_stops) == 1 else 'Limited Express' if len(express_stops) > 1 else 'Stops All Stations'
 	
 	return result
 
