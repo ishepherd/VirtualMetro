@@ -30,6 +30,7 @@ def parse_date(dtstring):
 	return pytz.utc.localize(datetime.strptime(dtstring, '%Y-%m-%dT%H:%M:%SZ')).astimezone(timezone)
 
 ROUTE_TYPE = 0
+LOOP_STATIONS = ['Parliament', 'Melbourne Central', 'Flagstaff', 'Southern Cross', 'Flinders Street']
 
 timezone = pytz.timezone('Australia/Melbourne')
 
@@ -62,15 +63,19 @@ def parse_departure(departure, departures, timenow):
 	
 	route_stops_dir = route_stops[(departure['route_id'], departure['direction_id'])]
 	
-	# Calculate stopping pattern until city loop
+	# Calculate stopping pattern
 	express_stops = [] # express_stop_count is unreliable for the city loop
 	num_city_loop = 0
+	done_city_loop = False
 	for j, stop in enumerate(route_stops_dir):
 		if stop['stop_id'] == int(flask.request.args['stop_id']):
 			break
 	for stop in route_stops_dir[j+1:]:
-		if stop['stop_id'] == 1155 or stop['stop_id'] == 1120 or stop['stop_id'] == 1068 or stop['stop_id'] == 1181 or stop['stop_id'] == 1071: # Parliament, MCS, Flagstaff, SXS, Flinders St
+		if stop['stop_name'] in LOOP_STATIONS:
 			# Calculate stopping pattern in city loop
+			if done_city_loop:
+				continue
+			
 			pattern['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
 			for k, stop2 in enumerate(pattern['departures']):
 				if stop2['stop_id'] == stop['stop_id']:
@@ -78,7 +83,8 @@ def parse_departure(departure, departures, timenow):
 			for stop in pattern['departures'][k:]:
 				result['stops'].append(pattern['stops'][str(stop['stop_id'])]['stop_name'].replace(' Station', ''))
 				num_city_loop += 1
-			break
+			
+			done_city_loop = True
 		if stop['stop_id'] in pattern_stops:
 			result['stops'].append(stop['stop_name'].replace(' Station', ''))
 		else:
@@ -97,7 +103,7 @@ def parse_departure(departure, departures, timenow):
 	
 	#result['dest'] = departures['runs'][str(departure['run_id'])]['destination_name']
 	result['dest'] = result['stops'][-1]
-	if result['dest'] == 'Parliament' or result['dest'] == 'Melbourne Central' or result['dest'] == 'Flagstaff' or result['dest'] == 'Southern Cross' or result['dest'] == 'Flinders Street':
+	if result['dest'] in LOOP_STATIONS:
 		# Is this a City Loop train?
 		if num_city_loop >= 3:
 			result['dest'] = 'City Loop'
