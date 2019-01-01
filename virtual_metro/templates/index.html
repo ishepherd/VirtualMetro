@@ -46,25 +46,50 @@
 			var stop_id = parseInt(getQueryVariable("stop_id", 1099));
 			var plat_id = parseInt(getQueryVariable("plat_id", 1));
 			
+			var svg = null;
+			var svg_time = null;
+			var template = null;
+			var time_offset = null;
+			
 			function start() {
-				var svg = document.getElementById("mainsvg").getSVGDocument().querySelector("svg");
-				var template = svg.innerHTML;
+				svg = document.getElementById("mainsvg").getSVGDocument().querySelector("svg");
+				template = svg.innerHTML;
 				
 				svg.innerHTML = nunjucks.renderString(template, {"dest": "Loading..."});
 				
-				function tick() {
-					var xhr = new XMLHttpRequest();
-					xhr.addEventListener("load", function() {
-						var result = JSON.parse(xhr.responseText);
-						svg.innerHTML = nunjucks.renderString(template, result);
-						document.getElementById("stopinfo").innerText = stop_id + " (" + result.stop_name + ")";
-					});
-					xhr.open("GET", "latest?stop_id=" + stop_id + "&plat_id=" + plat_id);
-					xhr.send();
-				}
-				
-				tick();
-				window.setInterval(tick, 30000);
+				tickTrains();
+				window.setInterval(tickTrains, 30000);
+			}
+			
+			function tickTrains() {
+				var xhr = new XMLHttpRequest();
+				xhr.addEventListener("load", function() {
+					var result = JSON.parse(xhr.responseText);
+					
+					svg.innerHTML = nunjucks.renderString(template, result);
+					svg_time = document.getElementById("mainsvg").getSVGDocument().querySelector("#time tspan");
+					
+					document.getElementById("stopinfo").innerText = stop_id + " (" + result.stop_name + ")";
+					
+					if (time_offset === null) {
+						time_offset = result.time_offset;
+						tickTime();
+						window.setInterval(tickTime, 1000);
+					}
+				});
+				xhr.open("GET", "latest?stop_id=" + stop_id + "&plat_id=" + plat_id);
+				xhr.send();
+			}
+			
+			function tickTime() {
+				var time = new Date(new Date().getTime() + time_offset * 1000);
+				var hour = time.getUTCHours() % 12;
+				if (hour === 0) hour = 12;
+				var minute = time.getUTCMinutes();
+				if (minute < 10) minute = "0" + minute;
+				var second = time.getUTCSeconds();
+				if (second < 10) second = "0" + second;
+				svg_time.innerHTML = hour + ":" + minute + ":" + second;
 			}
 			
 			function changePlatform() {

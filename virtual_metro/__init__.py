@@ -47,6 +47,7 @@ def index():
 def latest():
 	timenow = pytz.utc.localize(datetime.utcnow()).astimezone(timezone)
 	result = {}
+	result['time_offset'] = timenow.utcoffset().total_seconds()
 	
 	departures = do_request('/v3/departures/route_type/{}/stop/{}'.format(ROUTE_TYPE, flask.request.args['stop_id']), {'platform_numbers': flask.request.args['plat_id'], 'max_results': '5', 'expand': 'all'})
 	departures['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
