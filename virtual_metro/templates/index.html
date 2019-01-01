@@ -30,6 +30,7 @@
 		</style>
 	</head>
 	<body>
+		<div id="topbar">Stop <span id="stopinfo">?</span> [<a href="stations">change</a>] Platform <span id="platinfo">?</span> [<a href="#" onclick="return changePlatform();">change</a>] Style <span id="styleinfo">?</span> [change: <a href="#" onclick="return changeStyle(1);">1</a>, <a href="#" onclick="return changeStyle(2);">2</a>]</div>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/nunjucks/3.0.1/nunjucks.min.js"></script>
 		<script>
 			function getQueryVariable(variable, def) {
@@ -45,6 +46,11 @@
 			
 			var stop_id = parseInt(getQueryVariable("stop_id", 1099));
 			var plat_id = parseInt(getQueryVariable("plat_id", 1));
+			var template_id = parseInt(getQueryVariable("template_id", 1));
+			
+			document.getElementById("stopinfo").innerText = stop_id;
+			document.getElementById("platinfo").innerText = plat_id;
+			document.getElementById("styleinfo").innerText = template_id;
 			
 			var svg = null;
 			var svg_time = null;
@@ -94,15 +100,22 @@
 			
 			function changePlatform() {
 				var new_plat = parseInt(window.prompt("Enter new platform number:", plat_id));
-				window.location = "?stop_id=" + stop_id + "&plat_id=" + new_plat;
+				window.location = "?stop_id=" + stop_id + "&plat_id=" + new_plat + "&template_id=" + template_id;
 				return false;
 			}
-		</script>
-		<div id="topbar">Stop <span id="stopinfo">?</span> [<a href="stations">change</a>] Platform <span id="platinfo">?</span> [<a href="#" onclick="return changePlatform();">change</a>]</div>
-		<object id="mainsvg" data="static/template.svg" type="image/svg+xml" onload="start();"></object>
-		<script>
-			document.getElementById("stopinfo").innerText = stop_id;
-			document.getElementById("platinfo").innerText = plat_id;
+			
+			function changeStyle(new_style) {
+				window.location = "?stop_id=" + stop_id + "&plat_id=" + plat_id + "&template_id=" + new_style;
+				return false;
+			}
+			
+			// Create SVG
+			var svg_object = document.createElement("object");
+			svg_object.setAttribute("id", "mainsvg");
+			svg_object.setAttribute("data", "static/template" + template_id + ".svg");
+			svg_object.setAttribute("type", "image/svg+xml");
+			svg_object.setAttribute("onload", "start();");
+			document.querySelector("body").appendChild(svg_object);
 		</script>
 	</body>
 </html>

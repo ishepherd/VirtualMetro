@@ -80,7 +80,7 @@ def parse_departure(departure, departures, timenow):
 		if stop['stop_id'] in pattern_stops:
 			result['stops'].append(stop['stop_name'].replace(' Station', ''))
 		else:
-			result['stops'].append('---')
+			result['stops'].append('   ---')
 			express_stops.append(stop['stop_name'].replace(' Station', ''))
 		if stop['stop_id'] == departures['runs'][str(departure['run_id'])]['final_stop_id']:
 			break
