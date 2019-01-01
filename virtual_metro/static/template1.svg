@@ -29,8 +29,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.7"
-     inkscape:cx="2007.1643"
-     inkscape:cy="246.88644"
+     inkscape:cx="1976.45"
+     inkscape:cy="235.45787"
      inkscape:document-units="mm"
      inkscape:current-layer="layer2"
      showgrid="false"
@@ -322,7 +322,7 @@
        y="114.90017"
        id="text1041"><tspan
          sodipodi:role="line"
-         id="tspan2228">{{next[0].min}} min</tspan></text>
+         id="tspan902">{% if next[0] %}{{next[0].min}} min{% endif %}</tspan></text>
     <text
        id="text1045"
        y="153.88506"
@@ -330,7 +330,7 @@
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.66260591px;line-height:1.25;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr;text-anchor:start;display:inline;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.52761269;"
        xml:space="preserve"><tspan
          sodipodi:role="line"
-         id="tspan2230">{{next[1].min}} min</tspan></text>
+         id="tspan904">{% if next[1] %}{{next[1].min}} min{% endif %}</tspan></text>
     <path
        inkscape:connector-curvature="0"
        id="path1047"
