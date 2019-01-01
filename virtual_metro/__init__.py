@@ -39,6 +39,15 @@ timezone = pytz.timezone('Australia/Melbourne')
 def index():
 	return flask.render_template('index.html')
 
+def stop_to_name(stop, route_id):
+	name = stop['stop_name']
+	if name.endswith(' Station'):
+		name = name[:-8]
+	if name == 'Flemington Racecourse' and route_id and route_id != 16 and route_id != 17 and route_id != 1482:
+		# PTV bug??
+		name = 'South Kensington'
+	return name
+
 route_stops = {} # Cache lookup
 def parse_departure(departure, departures, timenow):
 	result = {}
