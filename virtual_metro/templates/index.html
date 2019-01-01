@@ -73,9 +73,9 @@
 					
 					if (time_offset === null) {
 						time_offset = result.time_offset;
-						tickTime();
 						window.setInterval(tickTime, 1000);
 					}
+					tickTime();
 				});
 				xhr.open("GET", "latest?stop_id=" + stop_id + "&plat_id=" + plat_id);
 				xhr.send();

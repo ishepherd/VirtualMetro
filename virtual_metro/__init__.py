@@ -26,11 +26,6 @@ def do_request(endpoint, args=None):
 	resp = urlopen(req)
 	return json.load(resp)
 
-def dest_to_service_name(dest):
-	if dest == 'Parliament':
-		return 'City Loop'
-	return dest
-
 def parse_date(dtstring):
 	return pytz.utc.localize(datetime.strptime(dtstring, '%Y-%m-%dT%H:%M:%SZ')).astimezone(timezone)
 
@@ -42,6 +37,62 @@ timezone = pytz.timezone('Australia/Melbourne')
 @app.route('/index')
 def index():
 	return flask.render_template('index.html')
+
+route_stops = {} # Cache lookup
+def parse_departure(departure, departures, timenow):
+	result = {}
+	result['dest'] = departures['runs'][str(departure['run_id'])]['destination_name']
+	result['sch'] = parse_date(departure['scheduled_departure_utc']).strftime('%I:%M').lstrip('0')
+	mins = (parse_date(departure['estimated_departure_utc'] or departure['scheduled_departure_utc']) - timenow).total_seconds() / 60
+	if mins < 0.5:
+		result['now'] = 'NOW'
+	else:
+		result['min'] = round(mins)
+	
+	# Get stopping pattern
+	result['stops'] = []
+	pattern = do_request('/v3/pattern/run/{}/route_type/{}'.format(departure['run_id'], ROUTE_TYPE), {'expand': 'all'})
+	pattern_stops = set(x['stop_id'] for x in pattern['departures'])
+	
+	# Get all stops on route
+	if departure['route_id'] not in route_stops:
+		stops = do_request('/v3/stops/route/{}/route_type/{}'.format(departure['route_id'], ROUTE_TYPE), {'direction_id': departure['direction_id']})
+		stops['stops'].sort(key=lambda x: x['stop_sequence'])
+		route_stops[departure['route_id']] = stops['stops']
+	
+	# Calculate stopping pattern until city loop
+	num_express = 0 # express_stop_count is unreliable for the city loop
+	num_city_loop = 0
+	for j, stop in enumerate(route_stops[departure['route_id']]):
+		if stop['stop_id'] == int(flask.request.args['stop_id']):
+			break
+	for stop in route_stops[departure['route_id']][j+1:]:
+		if stop['stop_id'] == 1155 or stop['stop_id'] == 1120 or stop['stop_id'] == 1068 or stop['stop_id'] == 1181 or stop['stop_id'] == 1071: # Parliament, MCS, Flagstaff, SXS, Flinders St
+			# Calculate stopping pattern in city loop
+			pattern['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
+			for k, stop2 in enumerate(pattern['departures']):
+				if stop2['stop_id'] == stop['stop_id']:
+					break
+			for stop in pattern['departures'][k:]:
+				result['stops'].append(pattern['stops'][str(stop['stop_id'])]['stop_name'].replace(' Station', ''))
+				num_city_loop += 1
+			break
+		if stop['stop_id'] in pattern_stops:
+			result['stops'].append(stop['stop_name'].replace(' Station', ''))
+		else:
+			result['stops'].append('---')
+			num_express += 1
+		if stop['stop_id'] == departures['runs'][str(departure['run_id'])]['final_stop_id']:
+			break
+	
+	result['dest'] = departures['runs'][str(departure['run_id'])]['destination_name']
+	if result['dest'] == 'Parliament' or result['dest'] == 'Melbourne Central' or result['dest'] == 'Flagstaff' or result['dest'] == 'Southern Cross' or result['dest'] == 'Flinders Street':
+		# Is this a City Loop train?
+		if num_city_loop >= 3:
+			result['dest'] = 'City Loop'
+	result['desc'] = 'Limited Express' if num_express > 0 else 'Stops All Stations'
+	
+	return result
 
 @app.route('/latest')
 def latest():
@@ -61,45 +112,7 @@ def latest():
 			continue
 		
 		# This is the next train
-		result['dest'] = dest_to_service_name(departures['runs'][str(departure['run_id'])]['destination_name'])
-		result['sch'] = parse_date(departure['scheduled_departure_utc']).strftime('%I:%M').lstrip('0')
-		mins = (parse_date(departure['estimated_departure_utc'] or departure['scheduled_departure_utc']) - timenow).total_seconds() / 60
-		if mins < 0.5:
-			result['now'] = 'NOW'
-		else:
-			result['min'] = round(mins)
-		
-		# Get stopping pattern
-		result['stops'] = []
-		pattern = do_request('/v3/pattern/run/{}/route_type/{}'.format(departure['run_id'], ROUTE_TYPE), {'expand': 'all'})
-		pattern_stops = set(x['stop_id'] for x in pattern['departures'])
-		
-		# Get all stops on route
-		stops = do_request('/v3/stops/route/{}/route_type/{}'.format(departure['route_id'], ROUTE_TYPE), {'direction_id': departure['direction_id']})
-		stops['stops'].sort(key=lambda x: x['stop_sequence'])
-		
-		# Calculate stopping pattern until city loop
-		num_express = 0 # express_stop_count is unreliable for the city loop
-		for j, stop in enumerate(stops['stops']):
-			if stop['stop_id'] == int(flask.request.args['stop_id']):
-				break
-		for stop in stops['stops'][j+1:]:
-			if stop['stop_id'] == 1155 or stop['stop_id'] == 1120 or stop['stop_id'] == 1068 or stop['stop_id'] == 1181 or stop['stop_id'] == 1071: # Parliament, MCS, Flagstaff, SXS, Flinders St
-				# Calculate stopping pattern in city loop
-				pattern['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
-				for k, stop2 in enumerate(pattern['departures']):
-					if stop2['stop_id'] == stop['stop_id']:
-						break
-				for stop in pattern['departures'][k:]:
-					result['stops'].append(pattern['stops'][str(stop['stop_id'])]['stop_name'].replace(' Station', ''))
-				break
-			if stop['stop_id'] in pattern_stops:
-				result['stops'].append(stop['stop_name'].replace(' Station', ''))
-			else:
-				result['stops'].append('---')
-				num_express += 1
-			if stop['stop_id'] == departures['runs'][str(departure['run_id'])]['final_stop_id']:
-				break
+		result.update(parse_departure(departure, departures, timenow))
 		
 		break
 	
@@ -107,11 +120,9 @@ def latest():
 	
 	result['next'] = []
 	for departure in departures['departures'][i+1:i+3]:
-		result['next'].append({})
-		result['next'][-1]['dest'] = dest_to_service_name(departures['runs'][str(departure['run_id'])]['destination_name'])
-		result['next'][-1]['desc'] = 'Stops All Stations' if num_express == 0 else 'Limited Express'
-		result['next'][-1]['sch'] = parse_date(departure['scheduled_departure_utc']).strftime('%I:%M').lstrip('0')
-		result['next'][-1]['min'] = '{} min'.format(round((parse_date(departure['estimated_departure_utc'] or departure['scheduled_departure_utc']) - timenow).total_seconds() / 60))
+		dep_result = parse_departure(departure, departures, timenow)
+		dep_result['min'] = '{} min'.format(dep_result['min'])
+		result['next'].append(dep_result)
 	
 	return flask.jsonify(result)
 
