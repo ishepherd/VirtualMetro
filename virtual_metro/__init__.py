@@ -62,7 +62,7 @@ def parse_departure(departure, departures, timenow):
 	# Get stopping pattern
 	result['stops'] = []
 	pattern = do_request('/v3/pattern/run/{}/route_type/{}'.format(departure['run_id'], ROUTE_TYPE), {'expand': 'all'})
-	pattern_stops = set(x['stop_id'] for x in pattern['departures'])
+	pattern_stops = [(x['stop_id'], stop_to_name(pattern['stops'][str(x['stop_id'])], departure['route_id']), False) for x in pattern['departures']]
 	
 	# Get all stops on route
 	if (departure['route_id'], departure['direction_id']) not in route_stops:
@@ -73,34 +73,44 @@ def parse_departure(departure, departures, timenow):
 	route_stops_dir = route_stops[(departure['route_id'], departure['direction_id'])]
 	
 	# Calculate stopping pattern
-	express_stops = [] # express_stop_count is unreliable for the city loop
-	num_city_loop = 0
-	done_city_loop = False
-	for j, stop in enumerate(route_stops_dir):
-		if stop['stop_id'] == int(flask.request.args['stop_id']):
-			break
-	for stop in route_stops_dir[j+1:]:
-		if stop['stop_name'].replace(' Station', '') in LOOP_STATIONS:
-			# Calculate stopping pattern in city loop
-			if done_city_loop:
-				continue
-			
-			pattern['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
-			for k, stop2 in enumerate(pattern['departures']):
-				if stop2['stop_id'] == stop['stop_id']:
-					break
-			for stop in pattern['departures'][k:]:
-				result['stops'].append(pattern['stops'][str(stop['stop_id'])]['stop_name'].replace(' Station', ''))
-				num_city_loop += 1
-			
-			done_city_loop = True
-		elif stop['stop_id'] in pattern_stops:
-			result['stops'].append(stop['stop_name'].replace(' Station', ''))
+	result['stops'] = []
+	
+	# Find this run along pattern_stops
+	ps_route_start = next((k for k, stop in enumerate(pattern_stops) if stop[0] == int(flask.request.args['stop_id'])), 0)
+	ps_route_end = next((k for k, stop in enumerate(pattern_stops) if stop[0] == pattern['runs'][str(departure['run_id'])]['final_stop_id']), len(pattern_stops)-1)
+	
+	# Find this run along route_stops_dir
+	rsd_route_start = next((k for k, stop in enumerate(route_stops_dir) if stop['stop_id'] == int(flask.request.args['stop_id'])), 0)
+	rsd_route_end = next((k for k, stop in enumerate(route_stops_dir) if stop['stop_id'] == pattern['runs'][str(departure['run_id'])]['final_stop_id']), len(route_stops_dir)-1)
+	
+	# Add express stops
+	for k, stop in enumerate(route_stops_dir[rsd_route_start:rsd_route_end+1]):
+		if any(x[0] == stop['stop_id'] for x in pattern_stops):
+			continue
+		if stop_to_name(stop, departure['route_id']) in LOOP_STATIONS:
+			continue
+		# Express stop
+		# Identify location based on previous stop
+		if rsd_route_start+k == 0:
+			ps_index = 0
 		else:
+			ps_index = next((l+1 for l, stop in enumerate(pattern_stops) if stop[0] == route_stops_dir[rsd_route_start+k-1]['stop_id']), None)
+		if ps_index is None:
+			continue
+		pattern_stops.insert(ps_index, (stop['stop_id'], stop_to_name(stop, departure['route_id']), True))
+		ps_route_end += 1
+	
+	# Convert to string
+	express_stops = []
+	num_city_loop = 0
+	for _, stop_name, is_express in pattern_stops[ps_route_start+1:ps_route_end+1]:
+		if is_express:
 			result['stops'].append('   ---')
-			express_stops.append(stop['stop_name'].replace(' Station', ''))
-		if stop['stop_id'] == departures['runs'][str(departure['run_id'])]['final_stop_id']:
-			break
+			express_stops.append(stop_name)
+		else:
+			result['stops'].append(stop_name)
+			if stop_name in LOOP_STATIONS:
+				num_city_loop += 1
 	
 	# Impute remainder of journey
 	if result['stops'][-1] == 'Parliament':
@@ -140,7 +150,7 @@ def latest():
 		# Invalid stop ID, platform ID, no departures, etc.
 		return flask.jsonify(result)
 	
-	result['stop_name'] = departures['stops'][flask.request.args['stop_id']]['stop_name'].replace(' Station', '')
+	result['stop_name'] = stop_to_name(departures['stops'][flask.request.args['stop_id']], None)
 	
 	# Next train
 	
