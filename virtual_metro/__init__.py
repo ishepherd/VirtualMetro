@@ -138,8 +138,7 @@ def latest():
 # Cache list of stations
 stns = None
 
-@app.route('/stations')
-def stations():
+def get_station_list():
 	global stns
 	if not stns:
 		stn_list = {}
@@ -152,5 +151,11 @@ def stations():
 		
 		stns = [(k, v) for k, v in stn_list.items()]
 		stns.sort(key=lambda x: x[1])
-	
+
+if not app.debug:
+	get_station_list()
+
+@app.route('/stations')
+def stations():
+	get_station_list()
 	return flask.render_template('stations.html', stations=stns)
