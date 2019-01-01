@@ -112,6 +112,10 @@ def latest():
 	departures = do_request('/v3/departures/route_type/{}/stop/{}'.format(ROUTE_TYPE, flask.request.args['stop_id']), {'platform_numbers': flask.request.args['plat_id'], 'max_results': '5', 'expand': 'all'})
 	departures['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
 	
+	if len(departures['departures']) == 0:
+		# Invalid stop ID, platform ID, no departures, etc.
+		return flask.jsonify(result)
+	
 	result['stop_name'] = departures['stops'][flask.request.args['stop_id']]['stop_name'].replace(' Station', '')
 	
 	# Next train
