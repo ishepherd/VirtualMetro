@@ -70,7 +70,12 @@ def parse_departure(departure, departures, timenow):
 		stops['stops'].sort(key=lambda x: x['stop_sequence'])
 		route_stops[(departure['route_id'], departure['direction_id'])] = stops['stops']
 	
-	route_stops_dir = route_stops[(departure['route_id'], departure['direction_id'])]
+	route_stops_dir = []
+	for stop in route_stops[(departure['route_id'], departure['direction_id'])]:
+		# Cut off at Flinders Street
+		route_stops_dir.append(stop)
+		if stop_to_name(stop, departure['route_id']) == 'Flinders Street':
+			break
 	
 	# Calculate stopping pattern
 	result['stops'] = []
@@ -79,9 +84,17 @@ def parse_departure(departure, departures, timenow):
 	ps_route_start = next((k for k, stop in enumerate(pattern_stops) if stop[0] == int(flask.request.args['stop_id'])), 0)
 	ps_route_end = next((k for k, stop in enumerate(pattern_stops) if stop[0] == pattern['runs'][str(departure['run_id'])]['final_stop_id']), len(pattern_stops)-1)
 	
+	ps_route_flinders = next((k for k, stop in enumerate(pattern_stops) if stop[0] == 1071), len(pattern_stops)-1)
+	if ps_route_flinders > ps_route_start:
+		ps_route_end = min(ps_route_end, ps_route_flinders) # Cut off at Flinders Street
+	
 	# Find this run along route_stops_dir
 	rsd_route_start = next((k for k, stop in enumerate(route_stops_dir) if stop['stop_id'] == int(flask.request.args['stop_id'])), 0)
 	rsd_route_end = next((k for k, stop in enumerate(route_stops_dir) if stop['stop_id'] == pattern['runs'][str(departure['run_id'])]['final_stop_id']), len(route_stops_dir)-1)
+	
+	rsd_route_flinders = next((k for k, stop in enumerate(route_stops_dir) if stop['stop_id'] == 1071), len(route_stops_dir)-1)
+	if rsd_route_flinders > rsd_route_start:
+		rsd_route_end = min(rsd_route_end, rsd_route_flinders)
 	
 	# Add express stops
 	for k, stop in enumerate(route_stops_dir[rsd_route_start:rsd_route_end+1]):
@@ -113,15 +126,18 @@ def parse_departure(departure, departures, timenow):
 				num_city_loop += 1
 	
 	# Impute remainder of journey
-	if result['stops'][-1] == 'Parliament':
+	if result['stops'] and result['stops'][-1] == 'Parliament':
 		result['stops'].append('Melbourne Central')
 		result['stops'].append('Flagstaff')
 		result['stops'].append('Southern Cross')
 		result['stops'].append('Flinders Street')
 		num_city_loop += 4
 	
-	result['dest'] = result['stops'][-1]
-	if result['dest'] in LOOP_STATIONS:
+	result['dest'] = result['stops'][-1] if result['stops'] else None
+	if result['dest'] is None:
+		result['dest'] = 'Arrival'
+		result['desc'] = ''
+	elif result['dest'] in LOOP_STATIONS:
 		# Up train
 		# Is this a City Loop train?
 		if num_city_loop >= 3:
