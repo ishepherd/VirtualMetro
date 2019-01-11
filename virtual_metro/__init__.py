@@ -36,13 +36,12 @@ def do_request(endpoint, args=None, cachetime=3600):
 	try:
 		resp = urlopen(req)
 	except Exception as ex:
-		print('Unable to refresh cache')
-		traceback.print_exc()
-		
 		if url in request_cache:
+			print('Unable to refresh cache')
+			traceback.print_exc()
 			return request_cache[url][1]
 		else:
-			return None
+			raise ex
 	data = json.load(resp)
 	
 	# Cache the response
