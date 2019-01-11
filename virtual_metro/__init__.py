@@ -9,6 +9,7 @@ import hashlib
 import hmac
 import json
 import pytz
+import traceback
 from binascii import hexlify
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
@@ -32,7 +33,16 @@ def do_request(endpoint, args=None):
 	signature = hexlify(hmac.digest(config.PTV_API_KEY.encode('ascii'), url.encode('ascii'), 'sha1')).decode('ascii')
 	
 	req = Request('https://timetableapi.ptv.vic.gov.au' + url + '&signature=' + signature, headers={'User-Agent': 'virtual-metro/0.1'})
-	resp = urlopen(req)
+	try:
+		resp = urlopen(req)
+	except Exception as ex:
+		print('Unable to refresh cache')
+		traceback.print_exc()
+		
+		if url in request_cache:
+			return request_cache[url][1]
+		else:
+			return None
 	data = json.load(resp)
 	
 	# Cache the response
@@ -62,6 +72,7 @@ def stop_to_name(stop, route_id):
 		name = 'South Kensington'
 	return name
 
+route_stops = {} # Cache lookup
 def parse_departure(departure, departures, timenow):
 	result = {}
 	result['dest'] = departures['runs'][str(departure['run_id'])]['destination_name']
@@ -78,11 +89,13 @@ def parse_departure(departure, departures, timenow):
 	pattern_stops = [(x['stop_id'], stop_to_name(pattern['stops'][str(x['stop_id'])], departure['route_id']), False) for x in pattern['departures']]
 	
 	# Get all stops on route
-	stops = do_request('/v3/stops/route/{}/route_type/{}'.format(departure['route_id'], ROUTE_TYPE), {'direction_id': departure['direction_id']})
-	stops['stops'].sort(key=lambda x: x['stop_sequence'])
+	if (departure['route_id'], departure['direction_id']) not in route_stops:
+		stops = do_request('/v3/stops/route/{}/route_type/{}'.format(departure['route_id'], ROUTE_TYPE), {'direction_id': departure['direction_id']})
+		stops['stops'].sort(key=lambda x: x['stop_sequence'])
+		route_stops[(departure['route_id'], departure['direction_id'])] = stops['stops']
 	
 	route_stops_dir = []
-	for stop in stops['stops']:
+	for stop in route_stops[(departure['route_id'], departure['direction_id'])]:
 		# Cut off at Flinders Street
 		route_stops_dir.append(stop)
 		if stop_to_name(stop, departure['route_id']) == 'Flinders Street':
