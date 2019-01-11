@@ -16,14 +16,14 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 request_cache = {}
-def do_request(endpoint, args=None):
+def do_request(endpoint, args=None, cachetime=3600):
 	url = endpoint + '?devid=' + config.PTV_USER_ID
 	if args:
 		url += '&' + urlencode(args)
 	
 	# Check cache
 	timenow = pytz.utc.localize(datetime.utcnow()).astimezone(timezone)
-	cachexp = timenow - timedelta(seconds=60)
+	cachexp = timenow - timedelta(seconds=cachetime)
 	if url in request_cache:
 		if request_cache[url][0] >= cachexp:
 			# Use cached response
@@ -183,7 +183,7 @@ def latest():
 	result = {}
 	result['time_offset'] = timenow.utcoffset().total_seconds()
 	
-	departures = do_request('/v3/departures/route_type/{}/stop/{}'.format(ROUTE_TYPE, flask.request.args['stop_id']), {'platform_numbers': flask.request.args['plat_id'], 'max_results': '5', 'expand': 'all'})
+	departures = do_request('/v3/departures/route_type/{}/stop/{}'.format(ROUTE_TYPE, flask.request.args['stop_id']), {'platform_numbers': flask.request.args['plat_id'], 'max_results': '5', 'expand': 'all'}, cachetime=60)
 	departures['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
 	
 	if len(departures['departures']) == 0:
@@ -229,7 +229,10 @@ def get_station_list():
 		stns.sort(key=lambda x: x[1])
 
 if not app.debug:
-	get_station_list()
+	try:
+		get_station_list()
+	except Exception as ex:
+		pass
 
 @app.route('/stations')
 def stations():
