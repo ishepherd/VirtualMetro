@@ -10,12 +10,19 @@
 				max-width: 100vw;
 				max-height: 100vh;
 			}
-			#topbar {
+			#topbar, #botbar {
 				position: absolute;
-				left: 0;
-				top: 0;
 				z-index: 999;
 				font-size: small;
+			}
+			#topbar {
+				left: 0;
+				top: 0;
+			}
+			#botbar {
+				right: 0;
+				bottom: 0;
+				text-align: right;
 			}
 			body, html {
 				color: #ccc;
@@ -31,6 +38,7 @@
 	</head>
 	<body>
 		<div id="topbar">Stop <span id="stopinfo">?</span> [<a href="stations">change</a>] Platform <span id="platinfo">?</span> [<a href="#" onclick="return changePlatform();">change</a>] Style <span id="styleinfo">?</span> [change: <a href="#" onclick="return changeStyle(1);">1</a>, <a href="#" onclick="return changeStyle(2);">2</a>]</div>
+		<div id="botbar">AGPLv3 · <a href="https://gitlab.com/RunasSudo/virtual-metro">Source Code</a></div>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/nunjucks/3.0.1/nunjucks.min.js"></script>
 		<script>
 			function getQueryVariable(variable, def) {
@@ -115,7 +123,7 @@
 			svg_object.setAttribute("data", "static/template" + template_id + ".svg");
 			svg_object.setAttribute("type", "image/svg+xml");
 			svg_object.setAttribute("onload", "start();");
-			document.querySelector("body").appendChild(svg_object);
+			document.querySelector("body").insertBefore(svg_object, document.querySelector("#botbar"));
 		</script>
 	</body>
 </html>
