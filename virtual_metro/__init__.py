@@ -10,21 +10,35 @@ import hmac
 import json
 import pytz
 from binascii import hexlify
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+request_cache = {}
 def do_request(endpoint, args=None):
 	url = endpoint + '?devid=' + config.PTV_USER_ID
 	if args:
 		url += '&' + urlencode(args)
+	
+	# Check cache
+	timenow = pytz.utc.localize(datetime.utcnow()).astimezone(timezone)
+	cachexp = timenow - timedelta(seconds=60)
+	if url in request_cache:
+		if request_cache[url][0] >= cachexp:
+			# Use cached response
+			return request_cache[url][1]
 	
 	# Generate signature
 	signature = hexlify(hmac.digest(config.PTV_API_KEY.encode('ascii'), url.encode('ascii'), 'sha1')).decode('ascii')
 	
 	req = Request('https://timetableapi.ptv.vic.gov.au' + url + '&signature=' + signature, headers={'User-Agent': 'virtual-metro/0.1'})
 	resp = urlopen(req)
-	return json.load(resp)
+	data = json.load(resp)
+	
+	# Cache the response
+	request_cache[url] = (timenow, data)
+	
+	return data
 
 def parse_date(dtstring):
 	return pytz.utc.localize(datetime.strptime(dtstring, '%Y-%m-%dT%H:%M:%SZ')).astimezone(timezone)
@@ -48,7 +62,6 @@ def stop_to_name(stop, route_id):
 		name = 'South Kensington'
 	return name
 
-route_stops = {} # Cache lookup
 def parse_departure(departure, departures, timenow):
 	result = {}
 	result['dest'] = departures['runs'][str(departure['run_id'])]['destination_name']
@@ -65,13 +78,11 @@ def parse_departure(departure, departures, timenow):
 	pattern_stops = [(x['stop_id'], stop_to_name(pattern['stops'][str(x['stop_id'])], departure['route_id']), False) for x in pattern['departures']]
 	
 	# Get all stops on route
-	if (departure['route_id'], departure['direction_id']) not in route_stops:
-		stops = do_request('/v3/stops/route/{}/route_type/{}'.format(departure['route_id'], ROUTE_TYPE), {'direction_id': departure['direction_id']})
-		stops['stops'].sort(key=lambda x: x['stop_sequence'])
-		route_stops[(departure['route_id'], departure['direction_id'])] = stops['stops']
+	stops = do_request('/v3/stops/route/{}/route_type/{}'.format(departure['route_id'], ROUTE_TYPE), {'direction_id': departure['direction_id']})
+	stops['stops'].sort(key=lambda x: x['stop_sequence'])
 	
 	route_stops_dir = []
-	for stop in route_stops[(departure['route_id'], departure['direction_id'])]:
+	for stop in stops['stops']:
 		# Cut off at Flinders Street
 		route_stops_dir.append(stop)
 		if stop_to_name(stop, departure['route_id']) == 'Flinders Street':
