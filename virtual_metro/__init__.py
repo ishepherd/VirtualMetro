@@ -182,7 +182,11 @@ def latest():
 	result = {}
 	result['time_offset'] = timenow.utcoffset().total_seconds()
 	
-	departures = do_request('/v3/departures/route_type/{}/stop/{}'.format(ROUTE_TYPE, flask.request.args['stop_id']), {'platform_numbers': flask.request.args['plat_id'], 'max_results': '5', 'expand': 'all'}, cachetime=60)
+	args = {'max_results': '5', 'expand': 'all'}
+	if flask.request.args['plat_id'] != '0':
+		args['platform_numbers'] = flask.request.args['plat_id']
+	
+	departures = do_request('/v3/departures/route_type/{}/stop/{}'.format(ROUTE_TYPE, flask.request.args['stop_id']), args, cachetime=60)
 	departures['departures'].sort(key=lambda x: x['scheduled_departure_utc'])
 	
 	if len(departures['departures']) == 0:
