@@ -191,6 +191,9 @@ def latest():
 	
 	if len(departures['departures']) == 0:
 		# Invalid stop ID, platform ID, no departures, etc.
+		# Set stop name manually
+		get_station_list()
+		result['stop_name'] = next((v for k, v in stns if k == int(flask.request.args['stop_id'])), 'Unknown station')
 		return flask.jsonify(result)
 	
 	result['stop_name'] = stop_to_name(departures['stops'][flask.request.args['stop_id']], None)
