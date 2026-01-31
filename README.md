@@ -28,3 +28,5 @@ Run the app as per the [Flask documentation](http://flask.pocoo.org/docs/1.0/qui
 export FLASK_APP=virtual_metro
 flask run
 ```
+
+see [log-of-pain.md]
