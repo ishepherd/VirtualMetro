@@ -1,5 +1,7 @@
 ## Log of pain
 
+### Day 1
+
 I'm not a Python coder.
 
 Following the helpful Usage in [README.md].
@@ -149,4 +151,20 @@ For one thing, obviously the API credits I am using (from config.example.py) are
 
 No, exactly the same.
 
- - [ ] Figure out with curl etc a working way to make this call and then replicate it in the Python code.
+
+### Day 2
+
+The server actually seems completely happy with the URL the Python code is making - signature and all.
+It works fine in Chrome
+
+(EXCEPT ... Today I keep having to open a fresh Incognito window for the http://127.0.0.1:5000 to work.
+If I don't I get a 403 error. There is nothing printed on the console when this happens. flask `--debug` does not help either.)
+
+Also I tried replacing `https` with `http`, no difference so the server's certificate is not at issue.
+
+Is the `certificate verify failed` error something to do with making the request signature??
+
+ - [ ] try calculating the signature the way that the [key and signature doc] suggests
+
+
+[key and signature doc]: https://web.archive.org/web/20250419170433/https://www.ptv.vic.gov.au/assets/default-site/footer/data-and-reporting/Datasets/PTV-Timetable-API/60096c0692/PTV-Timetable-API-key-and-signature-document.rtf
