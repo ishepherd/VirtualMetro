@@ -11,6 +11,7 @@ import sys
 import json
 import pytz
 import traceback
+import requests
 from binascii import hexlify
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
@@ -33,10 +34,10 @@ def do_request(endpoint, args=None, cachetime=3600):
 	# Generate signature
 	signature = hexlify(hmac.digest(config.PTV_API_KEY.encode('ascii'), url.encode('ascii'), 'sha1')).decode('ascii')
 	
-	req = Request('https://timetableapi.ptv.vic.gov.au' + url + '&signature=' + signature, headers={'User-Agent': 'virtual-metro/0.1'})
-	sys.stdout.write("fetch: " + req.full_url + "\n")
+	url = 'https://timetableapi.ptv.vic.gov.au' + url + '&signature=' + signature
+	sys.stdout.write("fetch: " + url + "\n")
 	try:
-		resp = urlopen(req)
+		resp = requests.get(url, headers={'User-Agent': 'virtual-metro/0.2'})
 	except Exception as ex:
 		if url in request_cache:
 			print('Unable to refresh cache')
@@ -44,7 +45,7 @@ def do_request(endpoint, args=None, cachetime=3600):
 			return request_cache[url][1]
 		else:
 			raise ex
-	data = json.load(resp)
+	data = resp.json()
 	
 	# Cache the response
 	request_cache[url] = (timenow, data)
