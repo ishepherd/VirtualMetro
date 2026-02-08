@@ -5,7 +5,8 @@ app = flask.Flask(__name__)
 
 from . import config
 
-import hashlib
+from hashlib import sha1
+import sys
 import hmac
 import json
 import pytz
@@ -17,9 +18,9 @@ from urllib.request import Request, urlopen
 
 request_cache = {}
 def do_request(endpoint, args=None, cachetime=3600):
-	url = endpoint + '?devid=' + config.PTV_USER_ID
+	url = endpoint
 	if args:
-		url += '&' + urlencode(args)
+		url += '?' + urlencode(args)
 	
 	# Check cache
 	timenow = pytz.utc.localize(datetime.utcnow()).astimezone(timezone)
@@ -29,10 +30,21 @@ def do_request(endpoint, args=None, cachetime=3600):
 			# Use cached response
 			return request_cache[url][1]
 	
-	# Generate signature
-	signature = hexlify(hmac.digest(config.PTV_API_KEY.encode('ascii'), url.encode('ascii'), 'sha1')).decode('ascii')
-	
-	req = Request('https://timetableapi.ptv.vic.gov.au' + url + '&signature=' + signature, headers={'User-Agent': 'virtual-metro/0.1'})
+	def getUrl(request):
+		devId = config.PTV_USER_ID
+		key = bytearray(config.PTV_API_KEY.encode('ascii'))
+		request = request + ('&' if ('?' in request) else '?')
+		raw = request+'devid={0}'.format(devId)
+		hashed = hmac.new(key, raw.encode(), sha1)
+		signature = hashed.hexdigest()
+		return 'https://timetableapi.ptv.vic.gov.au'+raw+'&signature={1}'.format(devId, signature) # TODO try removing 'tst'
+
+	url = getUrl(url)
+
+	sys.stdout.write(url + "\n")
+
+	req = Request(url, headers={'User-Agent': 'virtual-metro/0.2'})
+
 	try:
 		resp = urlopen(req)
 	except Exception as ex:
