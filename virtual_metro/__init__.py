@@ -7,6 +7,7 @@ from . import config
 
 import hashlib
 import hmac
+import sys
 import json
 import pytz
 import traceback
@@ -33,6 +34,7 @@ def do_request(endpoint, args=None, cachetime=3600):
 	signature = hexlify(hmac.digest(config.PTV_API_KEY.encode('ascii'), url.encode('ascii'), 'sha1')).decode('ascii')
 	
 	req = Request('https://timetableapi.ptv.vic.gov.au' + url + '&signature=' + signature, headers={'User-Agent': 'virtual-metro/0.1'})
+	sys.stdout.write("fetch: " + req.full_url + "\n")
 	try:
 		resp = urlopen(req)
 	except Exception as ex:
